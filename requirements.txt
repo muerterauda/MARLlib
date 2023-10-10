@@ -6,6 +6,6 @@ torch==1.9.0
 pettingzoo==1.23.1
 supersuit==3.9.0
 numpy==1.23.4
-importlib-metadata==4.13.0
+importlib-metadata
 gym==0.22.0
 PyYAML
