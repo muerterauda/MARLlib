@@ -89,7 +89,7 @@ def make_env(
         Tuple[MultiAgentEnv, Dict]: env instance & env configuration dict
     """
     if abs_path != "":
-        env_config_file_path = os.path.join(os.path.dirname(__file__), abs_path)
+        env_config_file_path = abs_path
     else:
         # default config
         env_config_file_path = os.path.join(os.path.dirname(__file__),
