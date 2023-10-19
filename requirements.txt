@@ -9,4 +9,4 @@ numpy==1.23.5
 importlib-metadata
 gym==0.22.0
 PyYAML
-protobuf===3.20.3
+protobuf==3.20.3
