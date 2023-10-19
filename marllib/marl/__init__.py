@@ -241,7 +241,7 @@ class _Algo:
         self.config_dict = None
         self.common_config = None
 
-    def __call__(self, hyperparam_source: str, **algo_params):
+    def __call__(self, hyperparam_source: str, absolute_path_hyper: bool = False, **algo_params):
         """
         Args:
             :param hyperparam_source: source of the algorithm's hyperparameter
@@ -252,17 +252,24 @@ class _Algo:
         Returns:
             _Algo
         """
-        if hyperparam_source in ["common", "test"]:
-            rel_path = "algos/hyperparams/{}/{}.yaml".format(hyperparam_source, self.name)
+        if absolute_path_hyper:
+            if not hyperparam_source.endswith(".yaml"):
+                raise Exception('hyperparam_source must end in .yaml')
+            with open(hyperparam_source, "r") as f:
+                algo_config_dict = yaml.load(f, Loader=yaml.FullLoader)
+                f.close()
         else:
-            rel_path = "algos/hyperparams/finetuned/{}/{}.yaml".format(hyperparam_source, self.name)
+            if hyperparam_source in ["common", "test"]:
+                rel_path = "algos/hyperparams/{}/{}.yaml".format(hyperparam_source, self.name)
+            else:
+                rel_path = "algos/hyperparams/finetuned/{}/{}.yaml".format(hyperparam_source, self.name)
 
-        if not os.path.exists(os.path.join(os.path.dirname(__file__), rel_path)):
-            rel_path = "../../examples/config/algo_config/{}.yaml".format(self.name)
+            if not os.path.exists(os.path.join(os.path.dirname(__file__), rel_path)):
+                rel_path = "../../examples/config/algo_config/{}.yaml".format(self.name)
 
-        with open(os.path.join(os.path.dirname(__file__), rel_path), "r") as f:
-            algo_config_dict = yaml.load(f, Loader=yaml.FullLoader)
-            f.close()
+            with open(os.path.join(os.path.dirname(__file__), rel_path), "r") as f:
+                algo_config_dict = yaml.load(f, Loader=yaml.FullLoader)
+                f.close()
 
         # update function-fixed config
         algo_config_dict["algo_args"] = dict_update(algo_config_dict["algo_args"],
