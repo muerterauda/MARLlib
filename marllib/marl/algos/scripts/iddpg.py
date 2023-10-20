@@ -20,17 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ray import tune
-from ray.tune.utils import merge_dicts
-from ray.tune import CLIReporter
-from ray.rllib.models import ModelCatalog
-from marllib.marl.algos.utils.setup_utils import AlgVar
-from marllib.marl.algos.core.IL.ddpg import IDDPGTrainer
-from marllib.marl.algos.utils.log_dir_util import available_local_dir
-from marllib.marl.algos.scripts.coma import restore_model
-import json
 from typing import Any, Dict
+
+from ray.rllib.models import ModelCatalog
 from ray.tune.analysis import ExperimentAnalysis
+from ray.tune.utils import merge_dicts
+
+from marllib.marl.algos.core.IL.ddpg import IDDPGTrainer
+from marllib.marl.algos.scripts.utils_scripts import run_tune_alg, generate_running_name
+from marllib.marl.algos.utils.setup_utils import AlgVar
 
 
 def run_iddpg(model: Any, exp: Dict, run: Dict, env: Dict,
@@ -91,23 +89,7 @@ def run_iddpg(model: Any, exp: Dict, run: Dict, env: Dict,
         },
         "zero_init_states": True,
     }
-    config.update(run)
 
-    algorithm = exp["algorithm"]
-    map_name = exp["env_args"]["map_name"]
-    arch = exp["model_arch_args"]["core_arch"]
-    RUNNING_NAME = '_'.join([algorithm, arch, map_name])
+    RUNNING_NAME = generate_running_name(exp)
 
-    model_path = restore_model(restore, exp)
-
-    results = tune.run(IDDPGTrainer,
-                       name=RUNNING_NAME,
-                       checkpoint_at_end=exp['checkpoint_end'],
-                       checkpoint_freq=exp['checkpoint_freq'],
-                       restore=model_path,
-                       stop=stop,
-                       config=config,
-                       verbose=1,
-                       progress_reporter=CLIReporter(),
-                       local_dir=available_local_dir if exp["local_dir"] == "" else exp["local_dir"])
-    return results
+    return run_tune_alg(RUNNING_NAME, config, run, exp, restore, stop, IDDPGTrainer)

@@ -20,22 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ray import tune
-from ray.tune.utils import merge_dicts
-from ray.tune import CLIReporter
-from ray.rllib.models import ModelCatalog
-from marllib.marl.algos.core.IL.trpo import TRPOTrainer
-from ray.rllib.utils.framework import try_import_tf, try_import_torch, get_variable
-from marllib.marl.algos.utils.setup_utils import AlgVar
-from marllib.marl.algos.utils.log_dir_util import available_local_dir
-from marllib.marl.algos.utils.trust_regions import TrustRegionUpdator
-from marllib.marl.algos.scripts.coma import restore_model
-import json
 from typing import Any, Dict
+
+from ray.rllib.models import ModelCatalog
+from ray.rllib.utils.framework import try_import_torch
 from ray.tune.analysis import ExperimentAnalysis
+from ray.tune.utils import merge_dicts
+
+from marllib.marl.algos.core.IL.trpo import TRPOTrainer
+from marllib.marl.algos.scripts.utils_scripts import run_tune_alg, generate_running_name
+from marllib.marl.algos.utils.setup_utils import AlgVar
+from marllib.marl.algos.utils.trust_regions import TrustRegionUpdator
 
 torch, nn = try_import_torch()
-
 
 
 def run_itrpo(model: Any, exp: Dict, run: Dict, env: Dict,
@@ -112,22 +109,6 @@ def run_itrpo(model: Any, exp: Dict, run: Dict, env: Dict,
         },
     }
 
-    config.update(run)
+    RUNNING_NAME = generate_running_name(exp)
 
-    map_name = exp["env_args"]["map_name"]
-    arch = exp["model_arch_args"]["core_arch"]
-    algorithm = exp["algorithm"]
-    RUNNING_NAME = '_'.join([algorithm, arch, map_name])
-    model_path = restore_model(restore, exp)
-
-    results = tune.run(TRPOTrainer,
-                       name=RUNNING_NAME,
-                       checkpoint_at_end=exp['checkpoint_end'],
-                       checkpoint_freq=exp['checkpoint_freq'],
-                       restore=model_path,
-                       stop=stop,
-                       config=config,
-                       verbose=1,
-                       progress_reporter=CLIReporter(),
-                       local_dir=available_local_dir if exp["local_dir"] == "" else exp["local_dir"])
-    return results
+    return run_tune_alg(RUNNING_NAME, config, run, exp, restore, stop, TRPOTrainer)

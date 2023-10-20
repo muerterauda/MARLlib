@@ -21,18 +21,16 @@
 # SOFTWARE.
 
 import random
-from ray import tune
-from ray.tune.utils import merge_dicts
-from ray.tune import CLIReporter
-from marllib.marl.algos.core.CC.happo import HAPPOTrainer
-from marllib.marl.algos.utils.setup_utils import AlgVar
-from marllib.marl.algos.utils.log_dir_util import available_local_dir
-from marllib.marl.algos.scripts.coma import restore_model
+from typing import Any, Dict
+
 from ray.rllib.agents.ppo.ppo import DEFAULT_CONFIG as PPO_CONFIG
 from ray.rllib.models import ModelCatalog
-import json
-from typing import Any, Dict
 from ray.tune.analysis import ExperimentAnalysis
+from ray.tune.utils import merge_dicts
+
+from marllib.marl.algos.core.CC.happo import HAPPOTrainer
+from marllib.marl.algos.scripts.utils_scripts import run_tune_alg, generate_running_name
+from marllib.marl.algos.utils.setup_utils import AlgVar
 
 
 def run_happo(model: Any, exp: Dict, run: Dict, env: Dict,
@@ -113,7 +111,6 @@ def run_happo(model: Any, exp: Dict, run: Dict, env: Dict,
             "vf_share_layers": True,
         },
     }
-    config.update(run)
 
     TRAIN_MARK = 'append-data'
 
@@ -125,24 +122,7 @@ def run_happo(model: Any, exp: Dict, run: Dict, env: Dict,
         ]
     })
 
-    algorithm = exp["algorithm"]
-    map_name = exp["env_args"]["map_name"]
-    arch = exp["model_arch_args"]["core_arch"]
-    RUNNING_NAME = '_'.join([algorithm, arch, map_name, str(lr), str(critic_lr), TRAIN_MARK.upper(), f'seed-{seed}'])
-
-    model_path = restore_model(restore, exp)
-
+    RUNNING_NAME = '_'.join([generate_running_name(exp), str(lr), str(critic_lr), TRAIN_MARK.upper(), f'seed-{seed}'])
     _HAPPOTrainer = HAPPOTrainer(PPO_CONFIG)
 
-    results = tune.run(_HAPPOTrainer,
-                       name=RUNNING_NAME,
-                       checkpoint_at_end=exp['checkpoint_end'],
-                       checkpoint_freq=exp['checkpoint_freq'],
-                       restore=model_path,
-                       stop=stop,
-                       config=config,
-                       verbose=1,
-                       progress_reporter=CLIReporter(),
-                       local_dir=available_local_dir if exp["local_dir"] == "" else exp["local_dir"])
-
-    return results
+    return run_tune_alg(RUNNING_NAME, config, run, exp, restore, stop, _HAPPOTrainer)

@@ -20,18 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ray import tune
+from typing import Any, Dict
+
+from ray.rllib.models import ModelCatalog
+from ray.tune.analysis import ExperimentAnalysis
 from ray.tune.utils import merge_dicts
-from ray.tune import CLIReporter
+
 from marllib.marl.algos.core.CC.hatrpo import HATRPOTrainer
-from marllib.marl.algos.utils.log_dir_util import available_local_dir
+from marllib.marl.algos.scripts.utils_scripts import run_tune_alg, generate_running_name
 from marllib.marl.algos.utils.setup_utils import AlgVar
 from marllib.marl.algos.utils.trust_regions import TrustRegionUpdator
-from marllib.marl.algos.scripts.coma import restore_model
-from ray.rllib.models import ModelCatalog
-import json
-from typing import Any, Dict
-from ray.tune.analysis import ExperimentAnalysis
 
 
 def run_hatrpo(model: Any, exp: Dict, run: Dict, env: Dict,
@@ -110,23 +108,7 @@ def run_hatrpo(model: Any, exp: Dict, run: Dict, env: Dict,
             "custom_model_config": back_up_config,
         },
     }
-    config.update(run)
 
-    algorithm = exp["algorithm"]
-    arch = exp["model_arch_args"]["core_arch"]
-    map_name = exp["env_args"]["map_name"]
-    RUNNING_NAME = '_'.join([algorithm, arch, map_name])
-    model_path = restore_model(restore, exp)
+    RUNNING_NAME = generate_running_name(exp)
 
-    results = tune.run(HATRPOTrainer,
-                       name=RUNNING_NAME,
-                       checkpoint_at_end=exp['checkpoint_end'],
-                       checkpoint_freq=exp['checkpoint_freq'],
-                       restore=model_path,
-                       stop=stop,
-                       config=config,
-                       verbose=1,
-                       progress_reporter=CLIReporter(),
-                       local_dir=available_local_dir if exp["local_dir"] == "" else exp["local_dir"])
-
-    return results
+    return run_tune_alg(RUNNING_NAME, config, run, exp, restore, stop, HATRPOTrainer)

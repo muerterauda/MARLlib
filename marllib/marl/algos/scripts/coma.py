@@ -20,31 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ray import tune
 from ray.tune.utils import merge_dicts
-from ray.tune import CLIReporter
 from ray.rllib.models import ModelCatalog
 from marllib.marl.algos.core.CC.coma import COMATrainer
+from marllib.marl.algos.scripts.utils_scripts import run_tune_alg, generate_running_name
 from marllib.marl.algos.utils.setup_utils import AlgVar
-from marllib.marl.algos.utils.log_dir_util import available_local_dir
-import json
 from typing import Any, Dict
 from ray.tune.analysis import ExperimentAnalysis
-
-
-def restore_model(restore: Dict, exp: Dict):
-    if restore is not None:
-        with open(restore["params_path"], 'r') as JSON:
-            raw_exp = json.load(JSON)
-            raw_exp = raw_exp["model"]["custom_model_config"]['model_arch_args']
-            check_exp = exp['model_arch_args']
-            if check_exp != raw_exp:
-                raise ValueError("is not using the params required by the checkpoint model")
-        model_path = restore["model_path"]
-    else:
-        model_path = None
-
-    return model_path
 
 
 def run_coma(model: Any, exp: Dict, run: Dict, env: Dict,
@@ -97,23 +79,6 @@ def run_coma(model: Any, exp: Dict, run: Dict, env: Dict,
         },
     }
 
-    config.update(run)
+    RUNNING_NAME = generate_running_name(exp)
 
-    algorithm = exp["algorithm"]
-    map_name = exp["env_args"]["map_name"]
-    arch = exp["model_arch_args"]["core_arch"]
-    RUNNING_NAME = '_'.join([algorithm, arch, map_name])
-
-    model_path = restore_model(restore, exp)
-    results = tune.run(COMATrainer,
-                       name=RUNNING_NAME,
-                       checkpoint_at_end=exp['checkpoint_end'],
-                       checkpoint_freq=exp['checkpoint_freq'],
-                       restore=model_path,
-                       stop=stop,
-                       config=config,
-                       verbose=1,
-                       progress_reporter=CLIReporter(),
-                       local_dir=available_local_dir if exp["local_dir"] == "" else exp["local_dir"])
-
-    return results
+    return run_tune_alg(RUNNING_NAME, config, run, exp, restore, stop, COMATrainer)
