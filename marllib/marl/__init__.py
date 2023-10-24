@@ -74,6 +74,7 @@ def make_env(
         map_name: str,
         force_coop: bool = False,
         abs_path: str = "",
+        log_init:bool = True,
         **env_params
 ) -> Tuple[MultiAgentEnv, Dict]:
     """
@@ -83,8 +84,8 @@ def make_env(
         :param map_name: name of the scenario
         :param force_coop: enforce the reward return of the environment to be global
         :param abs_path: env configuration path
+        :param log_init: show initial log with env created
         :param env_params: parameters that can be pass to the environment for customizing the environment
-
     Returns:
         Tuple[MultiAgentEnv, Dict]: env instance & env configuration dict
     """
@@ -132,9 +133,10 @@ def make_env(
             if env_n == env_config["env"]:
                 check_current_used_env_flag = True
 
-    print(tabulate(env_reg_ls,
-                   headers=['Env_Name', 'Check_Status', "Error_Log", "Config_File_Location", "Env_File_Location"],
-                   tablefmt='grid'))
+    if log_init:
+        print(tabulate(env_reg_ls,
+                       headers=['Env_Name', 'Check_Status', "Error_Log", "Config_File_Location", "Env_File_Location"],
+                       tablefmt='grid'))
 
     if not check_current_used_env_flag:
         raise ValueError(
